@@ -12,26 +12,16 @@ jobs:
     steps:
       - name: Enable VNC & Start GUI Session
         run: |
-          # Enable VNC
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on \
             -clientopts -setvnclegacy -vnclegacy yes \
             -clientopts -setvncpw -vncpw mypassword123 \
             -restart -agent -privs -all
-
-          # Create a virtual display and force login window
           sudo defaults write /Library/Preferences/com.apple.loginwindow autoLoginUser -bool false
-          
-          # Launch Finder and Dock to trigger GUI
           sudo launchctl load /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
-          
-          # Force WindowServer/GUI to start
-          sudo /usr/bin/killall -HUP loginwindow 2>/dev/null || true
           sleep 5
-          
-          # Launch some GUI apps to populate the screen
-          open -a Finder
-          open -a Terminal
+          open -a Finder || true
+          open -a Terminal || true
           sleep 3
 
       - name: Install & Start ngrok
