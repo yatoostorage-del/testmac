@@ -12,13 +12,13 @@ jobs:
     steps:
       - name: Enable VNC & Start GUI Session
         run: |
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement VNCLegacyPassword -string "mypassword123"
+          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on \
             -clientopts -setvnclegacy -vnclegacy yes \
             -clientopts -setvncpw -vncpw mypassword123 \
             -restart -agent -privs -all
-          sudo defaults write /Library/Preferences/com.apple.loginwindow autoLoginUser -bool false
-          sudo launchctl load /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
           sleep 5
           open -a Finder || true
           open -a Terminal || true
