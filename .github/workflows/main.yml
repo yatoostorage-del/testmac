@@ -1,24 +1,61 @@
 name: MacRDP
-on: 
+
+on:
   workflow_dispatch:
+
 jobs:
   build:
     name: MacRDP
     runs-on: macos-latest
-    
-    steps:                 
-    - name: Enabling Remote Access
-      env:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-      run: |
-          curl -s -o start.sh -L "https://raw.githubusercontent.com/JohnnyNetsec/github-vm/main/mac/start.sh"
-          chmod +x start.sh
-          bash start.sh "$NGROK_AUTH_TOKEN"
+    timeout-minutes: 360
+
+    steps:
+      - name: Enable VNC & Start GUI Session
+        run: |
+          # Enable VNC
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate -configure -access -on \
+            -clientopts -setvnclegacy -vnclegacy yes \
+            -clientopts -setvncpw -vncpw mypassword123 \
+            -restart -agent -privs -all
+
+          # Create a virtual display and force login window
+          sudo defaults write /Library/Preferences/com.apple.loginwindow autoLoginUser -bool false
           
-    - name: Log In Details To VNC Server
-      run: |
-         chmod +x login.sh
-         bash login.sh
-         
-    - name: MacOS System running...
-      uses: mxschmitt/action-tmate@v2
+          # Launch Finder and Dock to trigger GUI
+          sudo launchctl load /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+          
+          # Force WindowServer/GUI to start
+          sudo /usr/bin/killall -HUP loginwindow 2>/dev/null || true
+          sleep 5
+          
+          # Launch some GUI apps to populate the screen
+          open -a Finder
+          open -a Terminal
+          sleep 3
+
+      - name: Install & Start ngrok
+        env:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        run: |
+          brew install ngrok/ngrok/ngrok
+          ngrok config add-authtoken $NGROK_AUTH_TOKEN
+          ngrok tcp 5900 > /dev/null &
+          sleep 8
+
+      - name: VNC Login Details
+        run: |
+          curl -s http://localhost:4040/api/tunnels | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          addr = data['tunnels'][0]['public_url'].replace('tcp://', '')
+          host, port = addr.split(':')
+          print('================================')
+          print('VNC HOST    :', host)
+          print('VNC PORT    :', port)
+          print('VNC PASSWORD: mypassword123')
+          print('================================')
+          "
+
+      - name: Keep Alive
+        run: sleep 21600
