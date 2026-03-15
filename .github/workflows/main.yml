@@ -10,15 +10,11 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Check Username
+      - name: Set Password & Enable VNC
         run: |
-          echo "Current user: $(whoami)"
-          echo "Home dir: $HOME"
-          id
-
-      - name: Enable VNC & Start GUI Session
-        run: |
-          sudo dscl . -passwd /Users/$(whoami) mypassword123
+          echo "runner:mypassword123" | sudo dscl . -passwd /Users/runner mypassword123 || true
+          sudo /usr/bin/dscl . -authonly runner mypassword123 || true
+          printf "mypassword123\nmypassword123\n" | sudo passwd runner || true
           sudo defaults write /Library/Preferences/com.apple.RemoteManagement VNCLegacyPassword -string "mypassword123"
           sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
