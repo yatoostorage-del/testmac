@@ -10,19 +10,30 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Enable VNC & Start GUI Session
+      - name: Enable VNC
         run: |
-          sudo defaults write /Library/Preferences/com.apple.RemoteManagement VNCLegacyPassword -string "mypassword123"
-          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+          # Create a dummy display and user session
+          sudo /usr/bin/dscl . -create /Users/vnc
+          sudo /usr/bin/dscl . -create /Users/vnc UserShell /bin/bash
+          sudo /usr/bin/dscl . -create /Users/vnc RealName "VNC User"
+          sudo /usr/bin/dscl . -create /Users/vnc UniqueID 1001
+          sudo /usr/bin/dscl . -create /Users/vnc PrimaryGroupID 80
+          sudo /usr/bin/dscl . -create /Users/vnc NFSHomeDirectory /Users/vnc
+          sudo /usr/bin/dscl . -passwd /Users/vnc mypassword123
+          
+          # Enable screen sharing
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on \
             -clientopts -setvnclegacy -vnclegacy yes \
             -clientopts -setvncpw -vncpw mypassword123 \
             -restart -agent -privs -all
+          
+          # Force a GUI session for runner user
+          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+          
+          # Install and start noVNC + websockify for browser access
+          pip3 install websockify --break-system-packages
           sleep 5
-          open -a Finder || true
-          open -a Terminal || true
-          sleep 3
 
       - name: Install & Start ngrok
         env:
