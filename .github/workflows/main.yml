@@ -10,19 +10,14 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Set Password & Enable VNC
+      - name: Enable VNC
         run: |
-          sudo dscl . -create /Users/runner Password "*"
-          sudo dscl . -create /Users/runner ShadowHashData
-          echo "mypassword123" | sudo tee /tmp/vnc_pass
-          sudo dscl . -passwd /Users/runner "$(cat /tmp/vnc_pass)" || true
-          sudo sysadminctl -adminUser runner -resetPasswordFor runner -newPassword mypassword123 || true
-          sudo defaults write /Library/Preferences/com.apple.RemoteManagement VNCLegacyPassword -string "mypassword123"
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement VNCLegacyPassword -string "P@ssw0rd!"
           sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on \
             -clientopts -setvnclegacy -vnclegacy yes \
-            -clientopts -setvncpw -vncpw mypassword123 \
+            -clientopts -setvncpw -vncpw P@ssw0rd! \
             -restart -agent -privs -all
           sleep 5
           open -a Finder || true
@@ -40,7 +35,6 @@ jobs:
 
       - name: VNC Login Details
         run: |
-          echo "Username: $(whoami)"
           curl -s http://localhost:4040/api/tunnels | python3 -c "
           import sys, json
           data = json.load(sys.stdin)
@@ -49,7 +43,8 @@ jobs:
           print('================================')
           print('VNC HOST    :', host)
           print('VNC PORT    :', port)
-          print('VNC PASSWORD: mypassword123')
+          print('VNC USERNAME: runneradmin')
+          print('VNC PASSWORD: P@ssw0rd!')
           print('================================')
           "
 
