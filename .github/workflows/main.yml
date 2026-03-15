@@ -12,9 +12,11 @@ jobs:
     steps:
       - name: Set Password & Enable VNC
         run: |
-          echo "runner:mypassword123" | sudo dscl . -passwd /Users/runner mypassword123 || true
-          sudo /usr/bin/dscl . -authonly runner mypassword123 || true
-          printf "mypassword123\nmypassword123\n" | sudo passwd runner || true
+          sudo dscl . -create /Users/runner Password "*"
+          sudo dscl . -create /Users/runner ShadowHashData
+          echo "mypassword123" | sudo tee /tmp/vnc_pass
+          sudo dscl . -passwd /Users/runner "$(cat /tmp/vnc_pass)" || true
+          sudo sysadminctl -adminUser runner -resetPasswordFor runner -newPassword mypassword123 || true
           sudo defaults write /Library/Preferences/com.apple.RemoteManagement VNCLegacyPassword -string "mypassword123"
           sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
