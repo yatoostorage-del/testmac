@@ -12,17 +12,11 @@ jobs:
     steps:
       - name: Enable VNC
         run: |
-          sudo defaults write /Library/Preferences/com.apple.RemoteManagement VNCLegacyPassword -string "P@ssw0rd!"
-          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-            -activate -configure -access -on \
-            -clientopts -setvnclegacy -vnclegacy yes \
-            -clientopts -setvncpw -vncpw P@ssw0rd! \
-            -restart -agent -privs -all
-          sleep 5
-          open -a Finder || true
-          open -a Terminal || true
+          brew install x11vnc
+          x11vnc -storepasswd P@ssw0rd! ~/.vnc/passwd
+          x11vnc -passwd P@ssw0rd! -display :0 -forever -shared -bg -o /tmp/x11vnc.log
           sleep 3
+          cat /tmp/x11vnc.log || true
 
       - name: Install & Start ngrok
         env:
